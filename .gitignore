@@ -1,0 +1,7 @@
+*.idea
+*.weights
+*.pyc
+*.jpg
+*.pt
+*.pth
+*.tar

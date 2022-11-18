@@ -1,0 +1,37 @@
+# ------------------------------------------------------------------------
+# PoET: Pose Estimation Transformer for Single-View, Multi-Object 6D Pose Estimation
+# Copyright (c) 2022 Thomas Jantos (thomas.jantos@aau.at), University of Klagenfurt - Control of Networked Systems (CNS). All Rights Reserved.
+# Licensed under the BSD-2-Clause-License with no commercial use [see LICENSE for details]
+# ------------------------------------------------------------------------
+anchor_sizes:
+-
+  - 32
+- 
+  - 64
+-
+  - 128
+-
+  - 256
+-
+  - 512
+backbone_str: resnet50-fpn
+input_resize:
+- 640
+- 480
+label_to_category_id:
+  background: 0
+  obj_000001: 1
+  obj_000002: 2
+  obj_000003: 3
+  obj_000004: 4
+  obj_000005: 5
+  obj_000006: 6
+  obj_000007: 7
+  obj_000008: 8
+  obj_000009: 9
+  obj_000010: 10
+  obj_000011: 11
+  obj_000012: 12
+  obj_000013: 13
+  obj_000014: 14
+  obj_000015: 15
