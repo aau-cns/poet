@@ -2,13 +2,13 @@
 
 # Introduction
 
-![PoET_small](/home/thjantos/cns_github/poet/figures/PoET_scaled.svg)
+![PoET_small](./figures/PoET_scaled.svg)
 
 This repository is the official implementation of the paper [PoET: Pose Estimation Transformer for Single-View, Multi-Object 6D Pose Estimation](https://www.aau.at/wp-content/uploads/2022/09/jantos_poet.pdf).
 
 PoET is a transformer-based framework that takes a single RGB-image as input to simultaneously estimate the 6D pose, namely translation and rotation, for every object present in the image. It takes the detections and feature maps of an object detector backbone and feeds this additional information into an attention-based transformer. Our framework can be trained on top of any object detector framework. Any additional information that is not contained in the raw RGB image, e.g. depth maps or 3D models, are not required. We achieve state-of-the-art-results on challenging 6D object pose estimation datasets. Moreover, PoET can be utilized as a pose sensor in 6D localization tasks.
 
-![network_architecture](/home/thjantos/cns_github/poet/figures/network_architecture.png)
+![network_architecture](./figures/network_architecture.png)
 
 **Abstract:** Accurate 6D object pose estimation is an important task for a variety of robotic applications such as grasping or localization. It is a challenging task due to object symmetries, clutter, occlusion and different scenes, but it becomes even more challenging when additional information, such as depth and 3D models, is not provided. We present a transformer-based approach that takes an RGB image as input and predicts a 6D pose for each object in the image. Besides the image, our network does not require any additional information such as depth maps or 3D object models. First, the image is passed through an object detector to generate feature maps and to detect objects. Second, these feature maps are fed into a transformer while the detected bounding boxes are provided as additional information. Afterwards, the output object queries are processed by a separate translation and rotation head. We achieve state-of-the-art results for RGB-only approaches on the challenging YCB-V dataset. We illustrate the suitability of the resulting model as pose sensor for a 6-DoF state estimation task.
 
