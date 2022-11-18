@@ -6,7 +6,7 @@
 
 This repository is the official implementation of the paper [PoET: Pose Estimation Transformer for Single-View, Multi-Object 6D Pose Estimation](https://www.aau.at/wp-content/uploads/2022/09/jantos_poet.pdf).
 
-PoET is a transformer-based framework that takes a single RGB-image as input to simultaneously estimate the 6D pose, namely translation and rotation, for every object present in the image. It takes the detections and feature maps of an object detector backbone and feeds this additional information into an attention-based transformer. Our framework can be trained on top of any object detector framework. Any additional information that is not contained in the raw RGB image, e.g. depth maps or 3D models, are not required. We achieve state-of-the-art-results on challenging 6D object pose estimation datasets. Moreover, PoET can be utilized as a pose sensor in 6D localization tasks.
+PoET is a transformer-based framework that takes a single RGB-image as input to simultaneously estimate the 6D pose, namely translation and rotation, for every object present in the image. It takes the detections and feature maps of an object detector backbone and feeds this additional information into an attention-based transformer. Our framework can be trained on top of any object detector framework. Any additional information that is not contained in the raw RGB image, e.g. depth maps or 3D models, is not required. We achieve state-of-the-art-results on challenging 6D object pose estimation datasets. Moreover, PoET can be utilized as a pose sensor in 6D localization tasks.
 
 ![network_architecture](./figures/network_architecture.png)
 
