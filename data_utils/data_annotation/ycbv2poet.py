@@ -22,7 +22,7 @@ categories = [
     {'supercategory': '003_cracker_box', 'id': 2, 'name': '003_cracker_box'},
     {'supercategory': '004_sugar_box', 'id': 3, 'name': '004_sugar_box'},
     {'supercategory': '005_tomato_soup_can', 'id': 4, 'name': '005_tomato_soup_can'},
-    {'supercategory': '006_mustard_bootle', 'id': 5, 'name': '006_mustard_bootle'},
+    {'supercategory': '006_mustard_bottle', 'id': 5, 'name': '006_mustard_bottle'},
     {'supercategory': '007_tuna_fish_can', 'id': 6, 'name': '007_tuna_fish_can'},
     {'supercategory': '008_pudding_box', 'id': 7, 'name': '008_pudding_box'},
     {'supercategory': '009_gelatin_box', 'id': 8, 'name': '009_gelatin_box'},
