@@ -36,7 +36,7 @@ categories = [
     {'supercategory': '036_wood_block', 'id': 16, 'name': '036_wood_block'},
     {'supercategory': '037_scissors', 'id': 17, 'name': '037_scissors'},
     {'supercategory': '040_large_marker', 'id': 18, 'name': '040_large_marker'},
-    {'supercategory': '051_large_clamp', 'id': 19, 'name': '052_large_clamp'},
+    {'supercategory': '051_large_clamp', 'id': 19, 'name': '051_large_clamp'},
     {'supercategory': '052_extra_large_clamp', 'id': 20, 'name': '052_extra_large_clamp'},
     {'supercategory': '061_foam_brick', 'id': 21, 'name': '061_foam_brick'},
 ]
