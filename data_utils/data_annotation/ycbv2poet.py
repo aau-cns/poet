@@ -9,8 +9,8 @@ import os
 import cv2
 
 base_path = '/data'
-data_paths = ['train_real/', 'train_synt/']
-img_types = ['real', 'synt']
+data_paths = ['test/', 'train_real/', 'train_synt/']
+img_types = ['real', 'synt', 'test']
 
 
 output_base_path = '/data/ycbv/annotations/'
