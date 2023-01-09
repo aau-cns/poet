@@ -1,0 +1,23 @@
+{
+	"002_master_chef_can":false ,
+	"003_cracker_box":false,
+	"004_sugar_box":false,
+	"005_tomato_soup_can":false,
+	"006_mustard_bottle":false,
+	"007_tuna_fish_can":false,
+	"008_pudding_box":false,
+	"009_gelatin_box":false,
+	"010_potted_meat_can":false,
+	"011_banana":false,
+	"019_pitcher_base":false,
+	"021_bleach_cleanser":false,
+	"024_bowl":true,
+	"025_mug":false,
+	"035_power_drill":false,
+	"036_wood_block":true,
+	"037_scissors":false,
+	"040_large_marker":false,
+	"051_large_clamp":true,
+	"052_extra_large_clamp":true,
+	"061_foam_brick":true
+}
