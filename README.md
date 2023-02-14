@@ -45,13 +45,13 @@ PoET was tested with the following setup
 We recommend to use PoET within a Docker container. We provide a prebuild and tested Docker image with all the required packages. The Docker image can be pulled with the following command:
 
 ```ssh
-docker pull gitlab.aau.at:5050/aau-cns-docker/docker_registry/poet:latest
+docker pull aaucns/poet:latest
 ```
 
 PoET can then be run inside the docker container in combination with command line arguments. An example is:
 
 ```ssh
-docker run --entrypoint= -v /path/to/code/poet:/opt/project -v /path/to/data:/data -v /path/to/output:/output --rm --gpus all gitlab.aau.at:5050/aau-cns-docker/docker_registry/poet:latest python -u ../opt/project/main.py --epochs 50 --batch_size 16 --enc_layers 5 --dec_layers 5 --n_heads 16
+docker run --entrypoint= -v /path/to/code/poet:/opt/project -v /path/to/data:/data -v /path/to/output:/output --rm --gpus all aaucns/poet:latest python -u ../opt/project/main.py --epochs 50 --batch_size 16 --enc_layers 5 --dec_layers 5 --n_heads 16
 ```
 
 ## Scaled-YOLOv4 Backbone
