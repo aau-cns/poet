@@ -22,6 +22,7 @@ import os.path
 import tqdm
 from io import BytesIO
 import random
+import copy
 
 
 class CocoDetection(VisionDataset):
@@ -112,7 +113,7 @@ class CocoDetection(VisionDataset):
         coco = self.coco
         img_id = self.ids[index]
         ann_ids = coco.getAnnIds(imgIds=img_id)
-        target = coco.loadAnns(ann_ids)
+        target = copy.deepcopy(coco.loadAnns(ann_ids))
 
         # Load the intrinsics into the target annotation
         path = coco.loadImgs(img_id)[0]['file_name']
