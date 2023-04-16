@@ -411,7 +411,7 @@ class SetCriterion(nn.Module):
         1) we compute hungarian assignment between ground truth boxes and the outputs of the model
         2) we supervise each pair of matched ground-truth / prediction (supervise translation and rotation)
     """
-    def __init__(self, matcher, weight_dict, losses, ):
+    def __init__(self, matcher, weight_dict, losses):
         """ Create the criterion.
         Parameters:
             matcher: module able to compute a matching between targets and proposals
