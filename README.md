@@ -54,6 +54,22 @@ PoET can then be run inside the docker container in combination with command lin
 docker run --entrypoint= -v /path/to/code/poet:/opt/project -v /path/to/data:/data -v /path/to/output:/output --rm --gpus all aaucns/poet:latest python -u ../opt/project/main.py --epochs 50 --batch_size 16 --enc_layers 5 --dec_layers 5 --n_heads 16
 ```
 
+## Evaluation & Inference
+The code also allows to evaluate a pre-trained PoET model on a pose dataset, containing ground truth information, or to perform inference on a custom dataset, where only the images are available.
+
+In evaluation PoET processes all images, predicts the 6D pose for all detected objects and calculates the in the paper described evaluation metrics basd on the provided ground truth. The parameter ```--eval``` allows to evaluate for the ADD, ADD-S & ADD(-S) and calculates the translation and rotation error.  On the other hand, ```--eval_bop``` stores the results of PoET in BOP format such that it can be used with the BOP toolbox to evaluate for the metrics of the [BOP Challenge](https://bop.felk.cvut.cz/home). To run PoET in evalaution mode in the Docker container:
+
+```ssh
+docker run --entrypoint= -v /path/to/code/poet:/opt/project -v /path/to/data:/data -v /path/to/output:/output --rm --gpus all aaucns/poet:latest python -u ../opt/project/main.py --eval_batch_size 16 --enc_layers 5 --dec_layers 5 --n_heads 16 --resume /path/to/model/checkpoint0049.pth --eval
+```
+Please remeber to set the ```--eval_set``` parameter correctly.
+
+In a lot of cases we want to perform inference with PoET on data that has no ground truth annotation. For this we provide our [inference_tools](./inference_tools). Currently it contains a simple script to load a custom dataset, processes every image and stores the 6D pose predcitions in a JSON file. The inference mode can be simply activated by using the ```--inference``` flag and setting the parameters correctly. To run PoET in inference mode in the Docker container:
+
+```ssh
+docker run --entrypoint= -v /path/to/code/poet:/opt/project -v /path/to/data:/data -v /path/to/output:/output --rm --gpus all aaucns/poet:latest python -u ../opt/project/main.py --enc_layers 5 --dec_layers 5 --n_heads 16 --resume /path/to/model/checkpoint0049.pth --inference --inference_path /path/to/inference/data --inference_output /path/to/output/dir
+```
+
 ## Scaled-YOLOv4 Backbone
 
 This repository allows the user to run PoET with a Mask R-CNN object detector backbone. However, if you would like to reproduce the state-of-the-art results presented in our [paper](https://www.aau.at/wp-content/uploads/2022/09/jantos_poet.pdf) you can download our wrapper for the Scaled-YOLOv4 object detector backbone from our [Github](https://github.com/aau-cns/yolov4) (License: GPL 3.0). The backbone can be integrated easily into PoET by placing the code into the models directory.

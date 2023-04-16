@@ -27,6 +27,7 @@ from data_utils import build_dataset
 from engine import train_one_epoch, pose_evaluate, bop_evaluate
 from models import build_model
 from evaluation_tools.pose_evaluator_init import build_pose_evaluator
+from inference_tools.inference_engine import inference
 
 
 def get_args_parser():
@@ -141,6 +142,14 @@ def get_args_parser():
                         help='path to a directory containing the classes models')
     parser.add_argument('--model_symmetry', type=str, default='/annotations/symmetries.json',
                         help='path to .json-file containing the class symmetries')
+
+    # * Inference
+    parser.add_argument('--inference', action='store_true',
+                        help="Flag indicating that PoET should be launched in inference mode.")
+    parser.add_argument('--inference_path', type=str,
+                        help="Path to the directory containing the files for inference.")
+    parser.add_argument('--inference_output', type=str,
+                        help="Path to the directory where the inference results should be stored.")
 
     # * Misc
     parser.add_argument('--sgd', action='store_true')
@@ -358,4 +367,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+
+    if args.inference:
+        inference(args)
+
     main(args)
