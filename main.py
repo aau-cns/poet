@@ -28,9 +28,13 @@ from engine import train_one_epoch, pose_evaluate, bop_evaluate
 from models import build_model
 from evaluation_tools.pose_evaluator_init import build_pose_evaluator
 from inference_tools.inference_engine import inference
+import torch
+# * Dataset variables, change DATASET to automatically adapt rest of parameters
+
 
 
 def get_args_parser():
+
     parser = argparse.ArgumentParser('Pose Estimation Transformer', add_help=False)
 
     # Learning
@@ -39,8 +43,8 @@ def get_args_parser():
     parser.add_argument('--lr_backbone', default=2e-5, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
     parser.add_argument('--lr_linear_proj_mult', default=0.1, type=float)
-    parser.add_argument('--batch_size', default=16, type=int)
-    parser.add_argument('--eval_batch_size', default=16, type=int, help='Batch size for evaluation')
+    parser.add_argument('--batch_size', default=8, type=int)
+    parser.add_argument('--eval_batch_size', default=8, type=int, help='Batch size for evaluation')
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=50, type=int)
     parser.add_argument('--lr_drop', default=100, type=int)
@@ -49,9 +53,9 @@ def get_args_parser():
                         help='gradient clipping max norm')
 
     # * Backbone
-    parser.add_argument('--backbone', default='yolov4', type=str, choices=['yolov4', 'maskrcnn'],
+    parser.add_argument('--backbone', default='rcnn', type=str, choices=['yolov4', 'rcnn'],
                         help="Name of the convolutional backbone to use")
-    parser.add_argument('--backbone_cfg', default='configs/ycbv_yolov4-csp.cfg', type=str,
+    parser.add_argument('--backbone_cfg', default='configs/custom_rcnn.yaml', type=str,
                         help="Path to the backbone config file to use")
     parser.add_argument('--backbone_weights', default=None, type=str,
                         help="Path to the pretrained weights for the backbone."
@@ -117,15 +121,15 @@ def get_args_parser():
     parser.add_argument('--rotation_loss_coef', default=1, type=float, help='Loss weighing parameter for the rotation')
 
     # dataset parameters
-    parser.add_argument('--dataset', default='ycbv', type=str, choices=('ycbv', 'lmo'),
+    parser.add_argument('--dataset', default='custom', type=str, choices=('ycbv', 'lmo', 'custom'),
                         help="Choose the dataset to train/evaluate PoET on.")
-    parser.add_argument('--dataset_path', default='/data', type=str,
+    parser.add_argument('--dataset_path', default='data/custom', type=str,
                         help='Path to the dataset ')
     parser.add_argument('--train_set', default="train", type=str, help="Determine on which dataset split to train")
     parser.add_argument('--eval_set', default="test", type=str, help="Determine on which dataset split to evaluate")
-    parser.add_argument('--synt_background', default='/background/', type=str,
+    parser.add_argument('--synt_background', default='backgrounds/', type=str,
                         help="Directory containing the background images from which to sample")
-    parser.add_argument('--n_classes', default=21, type=int, help="Number of classes present in the dataset")
+    parser.add_argument('--n_classes', default=2, type=int, help="Number of classes present in the dataset")
     parser.add_argument('--jitter_probability', default=0.5, type=float,
                         help='If bbox_mode is set to jitter, this value indicates the probability '
                              'that jitter is applied to a bounding box.')
@@ -134,28 +138,28 @@ def get_args_parser():
     parser.add_argument('--grayscale', action='store_true', help='Activate grayscale augmentation.')
 
     # * Evaluator
-    parser.add_argument('--eval_interval', type=int, default=10,
+    parser.add_argument('--eval_interval', type=int, default=5,
                         help="Epoch interval after which the current model is evaluated")
-    parser.add_argument('--class_info', type=str, default='/annotations/classes.json',
+    parser.add_argument('--class_info', type=str, default='data/custom_class.json',
                         help='path to .txt-file containing the class names')
-    parser.add_argument('--models', type=str, default='/models_eval/',
+    parser.add_argument('--models', type=str, default='/models/',
                         help='path to a directory containing the classes models')
-    parser.add_argument('--model_symmetry', type=str, default='/annotations/symmetries.json',
+    parser.add_argument('--model_symmetry', type=str, default='data/custom_symmetries.json',
                         help='path to .json-file containing the class symmetries')
 
     # * Inference
     parser.add_argument('--inference', action='store_true',
                         help="Flag indicating that PoET should be launched in inference mode.")
-    parser.add_argument('--inference_path', type=str,
+    parser.add_argument('--inference_path', type=str, default='data/custom',
                         help="Path to the directory containing the files for inference.")
-    parser.add_argument('--inference_output', type=str,
+    parser.add_argument('--inference_output', type=str, default='output/',
                         help="Path to the directory where the inference results should be stored.")
 
     # * Misc
     parser.add_argument('--sgd', action='store_true')
     parser.add_argument('--save_interval', default=5, type=int,
                         help="Epoch interval after which the current checkpoint will be stored")
-    parser.add_argument('--output_dir', default='',
+    parser.add_argument('--output_dir', default='output/',
                         help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -166,13 +170,36 @@ def get_args_parser():
     parser.add_argument('--eval', action='store_true', help='Run model in evaluation mode')
     parser.add_argument('--eval_bop', action='store_true', help="Run model in BOP challenge evaluation mode")
     parser.add_argument('--num_workers', default=0, type=int)
-    parser.add_argument('--cache_mode', default=False, action='store_true', help='whether to cache images on memory')
+    parser.add_argument('--cache_mode', default=True, action='store_true', help='whether to cache images on memory')
 
+    # * Distributed training parameters
+    parser.add_argument('--distributed', action='store_true', default=True,
+                        help='Use multi-processing distributed training to launch ')
+    parser.add_argument('--world_size', default=3, type=int,
+                        help='number of distributed processes/ GPUs to use')
+    parser.add_argument('--dist_url', default='env://',
+                        help='url used to set up distributed training')
+    parser.add_argument('--dist_backend', default='nccl', type=str,
+                        help='distributed backend') 
+    parser.add_argument('--local_rank', default=0, type=int,
+                        help='rank of the process')     
+    parser.add_argument('--gpu', default=0, type=int,
+                        help='rank of the process')
     return parser
 
 
 def main(args):
-    utils.init_distributed_mode(args)
+
+    # Easier way to load custom datasets and backbones
+    args.dataset_path = f'data/{args.dataset}'
+    args.class_info = f'dataset_files/{args.dataset}_classes.json'
+    args.model_symmetry = f'dataset_files/{args.dataset}_symmetries.json'
+    args.backbone_cfg = f'configs/{args.dataset}_{args.backbone}.yaml'
+
+    print(f'\n\nUsing dataset: {args.dataset}\n\n')
+    
+    if args.distributed:
+        utils.init_distributed_mode(args)
 
     device = torch.device(args.device)
 
@@ -213,6 +240,7 @@ def main(args):
     data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
                                    collate_fn=utils.collate_fn, num_workers=args.num_workers,
                                    pin_memory=True)
+    
     data_loader_val = DataLoader(dataset_val, args.eval_batch_size, sampler=sampler_val,
                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers,
                                  pin_memory=True)
@@ -225,9 +253,6 @@ def main(args):
                 out = True
                 break
         return out
-
-    for n, p in model_without_ddp.named_parameters():
-        print(n)
 
     param_dicts = [
         {
@@ -257,7 +282,8 @@ def main(args):
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        print(f'\nUsing DistributedDataParallel\n')
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
         model_without_ddp = model.module
 
     output_dir = Path(args.output_dir)
@@ -307,11 +333,12 @@ def main(args):
 
     # Evaluate the model for the BOP challenge
     if args.eval_bop:
+        print(args.dataset)
         bop_evaluate(model, matcher, data_loader_val, args.eval_set, args.bbox_mode,
-                     args.rotation_representation, device, args.output_dir)
+                     args.rotation_representation, device, args.output_dir, args.dataset)
         return
 
-    print("Start training")
+    # print('\n* {} *\n {:^}\n* {} *'.format('-' * 100, 'Training Started', '-' * 100))
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
@@ -370,5 +397,6 @@ if __name__ == '__main__':
 
     if args.inference:
         inference(args)
-
+    print(f'args: {args}')
+    print('\n* {} *\n {:^}\n* {} *'.format('-' * 100, 'Starting Training', '-' * 100))
     main(args)
