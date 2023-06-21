@@ -168,6 +168,7 @@ def get_args_parser():
     parser.add_argument('--eval_bop', action='store_true', help="Run model in BOP challenge evaluation mode")
     parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--cache_mode', default=True, action='store_true', help='whether to cache images on memory')
+    parser.add_argument('--print_model', default=False, action='store_true', help='whether to print the model layers to the terminal')
 
     # * Distributed training parameters
     parser.add_argument('--distributed', action='store_true', default=True,
@@ -253,7 +254,10 @@ def main(args):
                 out = True
                 break
         return out
-
+    if args.print_model:
+        print(f'\n\n___Model___\n\n ')
+        for n, p in model_without_ddp.named_parameters():
+            print(n)
     param_dicts = [
         {
             "params":
