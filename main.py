@@ -29,9 +29,6 @@ from models import build_model
 from evaluation_tools.pose_evaluator_init import build_pose_evaluator
 from inference_tools.inference_engine import inference
 import torch
-# * Dataset variables, change DATASET to automatically adapt rest of parameters
-
-
 
 def get_args_parser():
 
@@ -190,7 +187,10 @@ def get_args_parser():
 
 def main(args):
 
-    # Easier way to load custom datasets and backbones
+    # * Dataset variables, change DATASET to automatically adapt rest of parameters, faster way to load custom datasets and backbones
+    # e.g. if your dataset is called 'custom', make sure you also have 'custom_classes.json' and 'custom_symmetries.json'
+    # backbone cfg is also named 'custom_rcnn.yaml', if using Mask RCNN for example.
+    # >> just run python main.py --dataset custom and all other paths will be adapted automatically
     args.dataset_path = f'data/{args.dataset}'
     args.class_info = f'dataset_files/{args.dataset}_classes.json'
     args.model_symmetry = f'dataset_files/{args.dataset}_symmetries.json'
