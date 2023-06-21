@@ -4,8 +4,6 @@
     and https://github.com/pytorch/pytorch/blob/173f224570017b4b1a3a1a13d0bff280a54d9cd9/torch/distributed/launch.py
     
 """
-
-
 import sys
 import subprocess
 import os
@@ -86,7 +84,6 @@ def main():
         current_env["RANK"] = str(dist_rank)
         current_env["LOCAL_RANK"] = str(local_rank)
 
-        #cmd = ["python", args.training_script, "--local_rank", str(local_rank)] + args.training_script_args
         # to pass the other args to main.py
         cmd = ["python", args.training_script, "--local_rank", str(local_rank)] + sys.argv[1:]
         print(f'CMD: {cmd}')
