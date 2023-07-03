@@ -29,10 +29,13 @@ from models import build_model
 from evaluation_tools.pose_evaluator_init import build_pose_evaluator
 from inference_tools.inference_engine import inference
 import torch
+# * Dataset variables, change DATASET to automatically adapt rest of parameters
+
+
 
 def get_args_parser():
 
-    parser = argparse.ArgumentParser('Pose Estimation Transformer', add_help=False)
+   parser = argparse.ArgumentParser('Pose Estimation Transformer', add_help=False)
 
     # Learning
     parser.add_argument('--lr', default=2e-4, type=float)
@@ -40,8 +43,8 @@ def get_args_parser():
     parser.add_argument('--lr_backbone', default=2e-5, type=float)
     parser.add_argument('--lr_linear_proj_names', default=['reference_points', 'sampling_offsets'], type=str, nargs='+')
     parser.add_argument('--lr_linear_proj_mult', default=0.1, type=float)
-    parser.add_argument('--batch_size', default=8, type=int)
-    parser.add_argument('--eval_batch_size', default=8, type=int, help='Batch size for evaluation')
+    parser.add_argument('--batch_size', default=16, type=int)
+    parser.add_argument('--eval_batch_size', default=16, type=int, help='Batch size for evaluation')
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=50, type=int)
     parser.add_argument('--lr_drop', default=100, type=int)
@@ -50,9 +53,9 @@ def get_args_parser():
                         help='gradient clipping max norm')
 
     # * Backbone
-    parser.add_argument('--backbone', default='rcnn', type=str, choices=['yolov4', 'rcnn'],
+    parser.add_argument('--backbone', default='yolov4', type=str, choices=['yolov4', 'maskrcnn'],
                         help="Name of the convolutional backbone to use")
-    parser.add_argument('--backbone_cfg', default='configs/custom_rcnn.yaml', type=str,
+    parser.add_argument('--backbone_cfg', default='configs/ycbv_yolov4-csp.cfg', type=str,
                         help="Path to the backbone config file to use")
     parser.add_argument('--backbone_weights', default=None, type=str,
                         help="Path to the pretrained weights for the backbone."
@@ -118,15 +121,15 @@ def get_args_parser():
     parser.add_argument('--rotation_loss_coef', default=1, type=float, help='Loss weighing parameter for the rotation')
 
     # dataset parameters
-    parser.add_argument('--dataset', default='custom', type=str, choices=('ycbv', 'lmo', 'custom'),
+    parser.add_argument('--dataset', default='ycbv', type=str, choices=('ycbv', 'lmo'),
                         help="Choose the dataset to train/evaluate PoET on.")
-    parser.add_argument('--dataset_path', default='data/custom', type=str,
+    parser.add_argument('--dataset_path', default='/data', type=str,
                         help='Path to the dataset ')
     parser.add_argument('--train_set', default="train", type=str, help="Determine on which dataset split to train")
     parser.add_argument('--eval_set', default="test", type=str, help="Determine on which dataset split to evaluate")
-    parser.add_argument('--synt_background', default='backgrounds/', type=str,
+    parser.add_argument('--synt_background', default='/background/', type=str,
                         help="Directory containing the background images from which to sample")
-    parser.add_argument('--n_classes', default=2, type=int, help="Number of classes present in the dataset")
+    parser.add_argument('--n_classes', default=21, type=int, help="Number of classes present in the dataset")
     parser.add_argument('--jitter_probability', default=0.5, type=float,
                         help='If bbox_mode is set to jitter, this value indicates the probability '
                              'that jitter is applied to a bounding box.')
@@ -135,28 +138,28 @@ def get_args_parser():
     parser.add_argument('--grayscale', action='store_true', help='Activate grayscale augmentation.')
 
     # * Evaluator
-    parser.add_argument('--eval_interval', type=int, default=5,
+    parser.add_argument('--eval_interval', type=int, default=10,
                         help="Epoch interval after which the current model is evaluated")
-    parser.add_argument('--class_info', type=str, default='data/custom_class.json',
+    parser.add_argument('--class_info', type=str, default='/annotations/classes.json',
                         help='path to .txt-file containing the class names')
-    parser.add_argument('--models', type=str, default='/models/',
+    parser.add_argument('--models', type=str, default='/models_eval/',
                         help='path to a directory containing the classes models')
-    parser.add_argument('--model_symmetry', type=str, default='data/custom_symmetries.json',
+    parser.add_argument('--model_symmetry', type=str, default='/annotations/symmetries.json',
                         help='path to .json-file containing the class symmetries')
 
     # * Inference
     parser.add_argument('--inference', action='store_true',
                         help="Flag indicating that PoET should be launched in inference mode.")
-    parser.add_argument('--inference_path', type=str, default='data/custom',
+    parser.add_argument('--inference_path', type=str,
                         help="Path to the directory containing the files for inference.")
-    parser.add_argument('--inference_output', type=str, default='output/',
+    parser.add_argument('--inference_output', type=str,
                         help="Path to the directory where the inference results should be stored.")
 
     # * Misc
     parser.add_argument('--sgd', action='store_true')
     parser.add_argument('--save_interval', default=5, type=int,
                         help="Epoch interval after which the current checkpoint will be stored")
-    parser.add_argument('--output_dir', default='output/',
+    parser.add_argument('--output_dir', default='',
                         help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -167,8 +170,7 @@ def get_args_parser():
     parser.add_argument('--eval', action='store_true', help='Run model in evaluation mode')
     parser.add_argument('--eval_bop', action='store_true', help="Run model in BOP challenge evaluation mode")
     parser.add_argument('--num_workers', default=0, type=int)
-    parser.add_argument('--cache_mode', default=True, action='store_true', help='whether to cache images on memory')
-    parser.add_argument('--print_model', default=False, action='store_true', help='whether to print the model layers to the terminal')
+    parser.add_argument('--cache_mode', default=False, action='store_true', help='whether to cache images on memory')
 
     # * Distributed training parameters
     parser.add_argument('--distributed', action='store_true', default=True,
@@ -187,20 +189,8 @@ def get_args_parser():
 
 
 def main(args):
-
-    # * Dataset variables, change DATASET to automatically adapt rest of parameters, faster way to load custom datasets and backbones
-    # e.g. if your dataset is called 'custom', make sure you also have 'custom_classes.json' and 'custom_symmetries.json'
-    # backbone cfg is also named 'custom_rcnn.yaml', if using Mask RCNN for example.
-    # >> just run python main.py --dataset custom and all other paths will be adapted automatically
-    args.dataset_path = f'data/{args.dataset}'
-    args.class_info = f'dataset_files/{args.dataset}_classes.json'
-    args.model_symmetry = f'dataset_files/{args.dataset}_symmetries.json'
-    args.backbone_cfg = f'configs/{args.dataset}_{args.backbone}.yaml'
-
-    print(f'\n\nUsing dataset: {args.dataset}\n\n')
     
-    if args.distributed:
-        utils.init_distributed_mode(args)
+    utils.init_distributed_mode(args)
 
     device = torch.device(args.device)
 
@@ -213,6 +203,7 @@ def main(args):
     # Build the model and evaluator
     model, criterion, matcher = build_model(args)
     model.to(device)
+
 
     pose_evaluator = build_pose_evaluator(args)
 
@@ -254,10 +245,7 @@ def main(args):
                 out = True
                 break
         return out
-    if args.print_model:
-        print(f'\n\n___Model___\n\n ')
-        for n, p in model_without_ddp.named_parameters():
-            print(n)
+
     param_dicts = [
         {
             "params":
