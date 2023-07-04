@@ -28,10 +28,14 @@ from engine import train_one_epoch, pose_evaluate, bop_evaluate
 from models import build_model
 from evaluation_tools.pose_evaluator_init import build_pose_evaluator
 from inference_tools.inference_engine import inference
+import torch
+# * Dataset variables, change DATASET to automatically adapt rest of parameters
+
 
 
 def get_args_parser():
-    parser = argparse.ArgumentParser('Pose Estimation Transformer', add_help=False)
+
+   parser = argparse.ArgumentParser('Pose Estimation Transformer', add_help=False)
 
     # Learning
     parser.add_argument('--lr', default=2e-4, type=float)
@@ -168,10 +172,24 @@ def get_args_parser():
     parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--cache_mode', default=False, action='store_true', help='whether to cache images on memory')
 
+    # * Distributed training parameters
+    parser.add_argument('--distributed', action='store_true', default=True,
+                        help='Use multi-processing distributed training to launch ')
+    parser.add_argument('--world_size', default=3, type=int,
+                        help='number of distributed processes/ GPUs to use')
+    parser.add_argument('--dist_url', default='env://',
+                        help='url used to set up distributed training')
+    parser.add_argument('--dist_backend', default='nccl', type=str,
+                        help='distributed backend') 
+    parser.add_argument('--local_rank', default=0, type=int,
+                        help='rank of the process')     
+    parser.add_argument('--gpu', default=0, type=int,
+                        help='rank of the process')
     return parser
 
 
 def main(args):
+    
     utils.init_distributed_mode(args)
 
     device = torch.device(args.device)
@@ -185,6 +203,7 @@ def main(args):
     # Build the model and evaluator
     model, criterion, matcher = build_model(args)
     model.to(device)
+
 
     pose_evaluator = build_pose_evaluator(args)
 
@@ -213,6 +232,7 @@ def main(args):
     data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
                                    collate_fn=utils.collate_fn, num_workers=args.num_workers,
                                    pin_memory=True)
+    
     data_loader_val = DataLoader(dataset_val, args.eval_batch_size, sampler=sampler_val,
                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers,
                                  pin_memory=True)
@@ -225,9 +245,6 @@ def main(args):
                 out = True
                 break
         return out
-
-    for n, p in model_without_ddp.named_parameters():
-        print(n)
 
     param_dicts = [
         {
@@ -257,7 +274,8 @@ def main(args):
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        print(f'\nUsing DistributedDataParallel\n')
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
         model_without_ddp = model.module
 
     output_dir = Path(args.output_dir)
@@ -307,11 +325,12 @@ def main(args):
 
     # Evaluate the model for the BOP challenge
     if args.eval_bop:
+        print(args.dataset)
         bop_evaluate(model, matcher, data_loader_val, args.eval_set, args.bbox_mode,
-                     args.rotation_representation, device, args.output_dir)
+                     args.rotation_representation, device, args.output_dir, args.dataset)
         return
 
-    print("Start training")
+    # print('\n* {} *\n {:^}\n* {} *'.format('-' * 100, 'Training Started', '-' * 100))
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
@@ -370,5 +389,6 @@ if __name__ == '__main__':
 
     if args.inference:
         inference(args)
-
+    print(f'args: {args}')
+    print('\n* {} *\n {:^}\n* {} *'.format('-' * 100, 'Starting Training', '-' * 100))
     main(args)
