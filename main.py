@@ -28,9 +28,6 @@ from engine import train_one_epoch, pose_evaluate, bop_evaluate
 from models import build_model
 from evaluation_tools.pose_evaluator_init import build_pose_evaluator
 from inference_tools.inference_engine import inference
-import torch
-# * Dataset variables, change DATASET to automatically adapt rest of parameters
-
 
 
 def get_args_parser():
@@ -173,7 +170,7 @@ def get_args_parser():
     parser.add_argument('--cache_mode', default=False, action='store_true', help='whether to cache images on memory')
 
     # * Distributed training parameters
-    parser.add_argument('--distributed', action='store_true', default=True,
+    parser.add_argument('--distributed', action='store_true',
                         help='Use multi-processing distributed training to launch ')
     parser.add_argument('--world_size', default=3, type=int,
                         help='number of distributed processes/ GPUs to use')
@@ -189,8 +186,8 @@ def get_args_parser():
 
 
 def main(args):
-    
-    utils.init_distributed_mode(args)
+    if args.distributed:
+        utils.init_distributed_mode(args)
 
     device = torch.device(args.device)
 
@@ -245,6 +242,9 @@ def main(args):
                 out = True
                 break
         return out
+
+    for n, p in model_without_ddp.named_parameters():
+        print(n)
 
     param_dicts = [
         {
@@ -330,7 +330,7 @@ def main(args):
                      args.rotation_representation, device, args.output_dir, args.dataset)
         return
 
-    # print('\n* {} *\n {:^}\n* {} *'.format('-' * 100, 'Training Started', '-' * 100))
+    print("Start training")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
@@ -389,6 +389,4 @@ if __name__ == '__main__':
 
     if args.inference:
         inference(args)
-    print(f'args: {args}')
-    print('\n* {} *\n {:^}\n* {} *'.format('-' * 100, 'Starting Training', '-' * 100))
     main(args)
