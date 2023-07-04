@@ -71,7 +71,7 @@ docker run --entrypoint= -v /path/to/code/poet:/opt/project -v /path/to/data:/da
 ```
 
 ## Distributed Training
-If you have multiple GPUs it is possible to train PoET with this [script](./launch_dsitributed.py). To launch distributed training, run
+If you have multiple GPUs it is possible to train PoET with this [script](./launch_distributed.py). To launch distributed training, run
 
 ```ssh
 python launch_distributed.py --train_arg_1 --traing_arg_2
@@ -89,7 +89,7 @@ It would then be
 python launch_distributed.py --epochs 100 --resume output/checkpoint.pth --num_workers 6
 ```
 
-Please checkout the runtime arguments in the [launch_distributed.py](./launch_dsitributed.py) and [main.py](./main.py) scripts and adapt them to your scenario (e.g. number of GPUs). The distributed training also works in the provided docker container, however it requires an additional runtime argument:
+Please checkout the runtime arguments in the [launch_distributed.py](./launch_distributed.py) and [main.py](./main.py) scripts and adapt them to your scenario (e.g. number of GPUs). The distributed training also works in the provided docker container, however it requires an additional runtime argument:
 
 ```ssh
 docker run --entrypoint= -v /path/to/code/poet:/opt/project -v /path/to/data:/data -v /path/to/output:/output --rm --ipc=host --gpus all aaucns/poet:latest python -u ../opt/project/launch_distributed.py --train_arg_1 --traing_arg_2
