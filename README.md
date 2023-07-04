@@ -70,6 +70,31 @@ In a lot of cases we want to perform inference with PoET on data that has no gro
 docker run --entrypoint= -v /path/to/code/poet:/opt/project -v /path/to/data:/data -v /path/to/output:/output --rm --gpus all aaucns/poet:latest python -u ../opt/project/main.py --enc_layers 5 --dec_layers 5 --n_heads 16 --resume /path/to/model/checkpoint0049.pth --inference --inference_path /path/to/inference/data --inference_output /path/to/output/dir
 ```
 
+## Distributed Training
+If you have multiple GPUs it is possible to train PoET with this [script](./launch_dsitributed.py). To launch distributed training, run
+
+```ssh
+python launch_distributed.py --train_arg_1 --traing_arg_2
+```
+
+So for example, if you run single GPU training using 
+
+```ssh
+python main.py --epochs 100 --resume output/checkpoint.pth --num_workers 6
+```
+
+It would then be
+
+```ssh
+python launch_distributed.py --epochs 100 --resume output/checkpoint.pth --num_workers 6
+```
+
+Please checkout the runtime arguments in the [launch_distributed.py](./launch_dsitributed.py) and [main.py](./main.py) scripts and adapt them to your scenario (e.g. number of GPUs). The distributed training also works in the provided docker container, however it requires an additional runtime argument:
+
+```ssh
+docker run --entrypoint= -v /path/to/code/poet:/opt/project -v /path/to/data:/data -v /path/to/output:/output --rm --ipc=host --gpus all aaucns/poet:latest python -u ../opt/project/launch_distributed.py --train_arg_1 --traing_arg_2
+```
+
 ## Scaled-YOLOv4 Backbone
 
 This repository allows the user to run PoET with a Mask R-CNN object detector backbone. However, if you would like to reproduce the state-of-the-art results presented in our [paper](https://www.aau.at/wp-content/uploads/2022/09/jantos_poet.pdf) you can download our wrapper for the Scaled-YOLOv4 object detector backbone from our [Github](https://github.com/aau-cns/yolov4) (License: GPL 3.0). The backbone can be integrated easily into PoET by placing the code into the models directory.
