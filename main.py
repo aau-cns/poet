@@ -32,7 +32,7 @@ from inference_tools.inference_engine import inference
 
 def get_args_parser():
 
-   parser = argparse.ArgumentParser('Pose Estimation Transformer', add_help=False)
+    parser = argparse.ArgumentParser('Pose Estimation Transformer', add_help=False)
 
     # Learning
     parser.add_argument('--lr', default=2e-4, type=float)
@@ -180,8 +180,8 @@ def get_args_parser():
                         help='distributed backend') 
     parser.add_argument('--local_rank', default=0, type=int,
                         help='rank of the process')     
-    parser.add_argument('--gpu', default=0, type=int,
-                        help='rank of the process')
+    parser.add_argument('--gpu', default=0, type=int, help='rank of the process')
+
     return parser
 
 
