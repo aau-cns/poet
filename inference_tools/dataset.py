@@ -54,7 +54,7 @@ class InferenceDataset(VisionDataset):
 
 
 def build_dataset(args):
-    root = Path(args.inference_imgs)
+    root = Path(args.inference_path)
     dataset = InferenceDataset(root)
     return dataset
 
