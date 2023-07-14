@@ -308,6 +308,9 @@ def get_sha():
 def collate_fn(batch):
     batch = list(zip(*batch))
     batch[0] = nested_tensor_from_tensor_list(batch[0])
+    if batch[1][0] is None:
+        # Targets are None
+        batch[1] = None
     return tuple(batch)
 
 
