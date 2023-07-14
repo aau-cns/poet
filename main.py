@@ -389,4 +389,5 @@ if __name__ == '__main__':
 
     if args.inference:
         inference(args)
-    main(args)
+    else:
+        main(args)
