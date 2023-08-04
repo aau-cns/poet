@@ -79,7 +79,7 @@ def get_args_parser():
                         help='Defines whether the transformer query embeddings are learned or determined by the bounding boxes')
     parser.add_argument('--rotation_representation', default='6d', type=str, choices=('6d', 'quat', 'silho_quat'),
                         help="Determine the rotation representation with which PoET is trained.")
-    parser.add_argument('--class_mode', default='agnostic', type=str, choices=('agnostic', 'specific'),
+    parser.add_argument('--class_mode', default='specific', type=str, choices=('agnostic', 'specific'),
                         help="Determine whether PoET ist trained class-specific or class-agnostic")
 
     # * Transformer
@@ -388,6 +388,7 @@ if __name__ == '__main__':
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
     if args.inference:
+        args.bbox_mode = "backbone"
         inference(args)
     else:
         main(args)
