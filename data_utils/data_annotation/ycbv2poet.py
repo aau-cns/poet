@@ -6,12 +6,11 @@
 
 import json
 import os
-import cv2
 
 
 # Parameter Initialization
 annotation_set = "train"  # Choices: train, test
-train_set = "real_synt"  # Choices: full, real_only, synt_only, pbr_only, real_synt
+train_set = "real_only"  # Choices: full, real_only, synt_only, pbr_only, real_synt
 test_set = "full"  # Choices: full, keyframes, bop
 
 if annotation_set == "train":
@@ -144,7 +143,6 @@ for data_path, img_type in zip(data_paths, img_types):
                     # Skip images that are not Keyframes
                     continue
             img_path = img_dir_path + 'rgb/' + img_name
-            # img = cv2.imread(img_path)
             img_annotation_counter = 0
             file_name = data_path + img_dir + '/rgb/' + img_name
             bbox_data = bbox_annotations[b_k]
