@@ -96,13 +96,15 @@ class MaskRCNNBackbone(MaskRCNN):
         for img_detections in detections:
             img_predictions = []
             for c, cls in enumerate(img_detections['labels']):
+                box = img_detections["boxes"][c]
+                box = torch.hstack((box, img_detections["scores"][c]))
                 if self.obj_id_map is not None:
                     if cls.item() in self.obj_id_map.keys():
                         new_cls = self.obj_id_map[cls.item()]
-                        box = img_detections["boxes"][c]
-                        box = torch.hstack((box, img_detections["scores"][c]))
                         box = torch.hstack((box, torch.tensor(new_cls, dtype=torch.float32, device=device)))
-                        img_predictions.append(box)
+                else:
+                    box = torch.hstack((box, cls))
+                img_predictions.append(box)
             if len(img_predictions) == 0:
                 # Either no objects present or no detected --> Append None
                 img_predictions = None
@@ -127,6 +129,7 @@ def build_maskrcnn(args):
     rcnn_cfg = yaml.load(Path(args.backbone_cfg).read_text(), Loader=yaml.FullLoader)
     n_classes = len(rcnn_cfg["label_to_category_id"])
     backbone = MaskRCNNBackbone(input_resize=(rcnn_cfg["input_resize"][0], rcnn_cfg["input_resize"][1]),
+                                dataset=args.dataset,
                                 n_classes=n_classes,
                                 backbone_str=rcnn_cfg["backbone_str"])
     if args.backbone_weights is not None:
