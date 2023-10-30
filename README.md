@@ -20,10 +20,13 @@ This software is made available to the public to use (_source-available_), licen
 If you use PoET for academic research, please cite the corresponding paper and consult the [LICENSE](./LICENSE) file for a detailed explanation.
 
 ```latex
-@inproceedings{jantos2022poet,
-  title={{PoET: Pose Estimation Transformer for Single-View, Multi-Object 6D Pose Estimation}},
-  author={Jantos, Thomas and Hamdad, Mohamed and Granig, Wolfgang and Weiss, Stephan and Steinbrener, Jan},
-  booktitle={6th Annual Conference on Robot Learning (CoRL 2022)}
+@inproceedings{jantos2023poet,
+  title={PoET: Pose Estimation Transformer for Single-View, Multi-Object 6D Pose Estimation},
+  author={Jantos, Thomas Georg and Hamdad, Mohamed Amin and Granig, Wolfgang and Weiss, Stephan and Steinbrener, Jan},
+  booktitle={Conference on Robot Learning},
+  pages={1060--1070},
+  year={2023},
+  organization={PMLR}
 }
 ```
 
