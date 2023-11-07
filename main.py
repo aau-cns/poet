@@ -50,7 +50,7 @@ def get_args_parser():
                         help='gradient clipping max norm')
 
     # * Backbone
-    parser.add_argument('--backbone', default='yolov4', type=str, choices=['yolov4', 'maskrcnn'],
+    parser.add_argument('--backbone', default='yolov4', type=str, choices=['yolov4', 'maskrcnn', 'fasterrcnn'],
                         help="Name of the convolutional backbone to use")
     parser.add_argument('--backbone_cfg', default='configs/ycbv_yolov4-csp.cfg', type=str,
                         help="Path to the backbone config file to use")
@@ -124,7 +124,7 @@ def get_args_parser():
                         help='Path to the dataset ')
     parser.add_argument('--train_set', default="train", type=str, help="Determine on which dataset split to train")
     parser.add_argument('--eval_set', default="test", type=str, help="Determine on which dataset split to evaluate")
-    parser.add_argument('--synt_background', default='/background/', type=str,
+    parser.add_argument('--synt_background', default=None, type=str,
                         help="Directory containing the background images from which to sample")
     parser.add_argument('--n_classes', default=21, type=int, help="Number of classes present in the dataset")
     parser.add_argument('--jitter_probability', default=0.5, type=float,

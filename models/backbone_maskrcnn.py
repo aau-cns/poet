@@ -134,7 +134,15 @@ def build_maskrcnn(args):
                                 backbone_str=rcnn_cfg["backbone_str"])
     if args.backbone_weights is not None:
         ckpt = torch.load(args.backbone_weights)
-        ckpt = ckpt['state_dict']
-        backbone.load_state_dict(ckpt)
+        if args.backbone == "maskrcnn":
+            ckpt = ckpt['state_dict']
+            backbone.load_state_dict(ckpt)
+        elif args.backbone == "fasterrcnn":
+            ckpt = ckpt['model']
+            missing_keys, unexpected_keys = backbone.load_state_dict(ckpt, strict=False)
+            if len(missing_keys) > 0:
+                print("Loading Faster R-CNN weights")
+                print('Missing Keys: {}'.format(missing_keys))
+                print('PoET does not rely on the mask head of Mask R-CNN')
     return backbone
 

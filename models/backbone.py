@@ -55,7 +55,7 @@ def build_backbone(args):
     position_embedding = build_position_encoding(args)
 
     # Build the object detector backbone
-    if args.backbone == "maskrcnn":
+    if args.backbone in ["maskrcnn", "fasterrcnn"]:
         backbone = build_maskrcnn(args)
     else:
         raise NotImplementedError
