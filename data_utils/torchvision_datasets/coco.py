@@ -133,9 +133,12 @@ class CocoDetection(VisionDataset):
         img = self.get_image(path, mode)
         # Load a random background image if image is synthetic
         if synthetic:
-            background_img = self.get_background(img.size)
-            background_img.paste(img, (0, 0), img)
-            img = background_img.copy()
+            if self.synthetic_background is None:
+                print("DataLoader tries to load a synthetic background, but none is provided. Skipping this step.")
+            else:
+                background_img = self.get_background(img.size)
+                background_img.paste(img, (0, 0), img)
+                img = background_img.copy()
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
