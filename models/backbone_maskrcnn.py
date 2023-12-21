@@ -102,6 +102,9 @@ class MaskRCNNBackbone(MaskRCNN):
                     if cls.item() in self.obj_id_map.keys():
                         new_cls = self.obj_id_map[cls.item()]
                         box = torch.hstack((box, torch.tensor(new_cls, dtype=torch.float32, device=device)))
+                    else:
+                        # Processing object that has a label that is not in the object_id_map --> skip
+                        continue
                 else:
                     box = torch.hstack((box, cls))
                 img_predictions.append(box)
