@@ -29,7 +29,10 @@ If you use PoET for academic research, please cite the corresponding paper and c
   organization={PMLR}
 }
 ```
-
+# Showcases
+Here we present showcases of PoET:
+* [AI-Based Multi-Object Relative State Estimation with Self-Calibration Capabilities](https://arxiv.org/pdf/2303.00371): In this work PoET was used to provide object-relative pose measurements between a mobile robot's camera and objects of interest. These measurements are fused with IMU measurements in an Extended Kalman Filter (EKF) to perform object-relative localization.
+* [AIVIO: Closed-loop, Object-relative Navigation of UAVs with AI-aided Visual Inertial Odometry](https://arxiv.org/pdf/2410.05996): In this work a real-time capable UAV system for closed-loop, object-relative navigation is presented. PoET is providing object-relative pose measurements for the Extended Kalman Filter (EKF). The UAV is equipped with an NVIDIA Jetson AGX Orin DevKit and PoET is optimized with TensorRT, achieving up to 50 FPS. Check out the [video of an example flight](https://www.youtube.com/watch?v=0LaYPmUwezg).
 # Getting Started
 
 ## Requirements
