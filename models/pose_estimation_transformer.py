@@ -16,6 +16,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from util import box_ops
+from util.rotation_utils import so3_log_map
 from util.misc import (NestedTensor, nested_tensor_from_tensor_list)
 from .backbone import build_backbone
 from .matcher import build_matcher
@@ -34,7 +35,7 @@ class PoET(nn.Module):
     """
     def __init__(self, backbone, transformer, num_queries, num_feature_levels, n_classes, bbox_mode='gt',
                  ref_points_mode='bbox', query_embedding_mode='bbox', rotation_mode='6d', class_mode='agnostic',
-                 aux_loss=True, backbone_type="yolo"):
+                 aleatoric=False, aux_loss=True, backbone_type="yolo"):
         """
         Initalizing the model.
         Parameters:
@@ -66,7 +67,11 @@ class PoET(nn.Module):
         self.query_embedding_mode = query_embedding_mode
         self.rotation_mode = rotation_mode
         self.class_mode = class_mode
-
+        self.aleatoric = aleatoric
+        self.aleatoric_dim = 3  # We predict a 3x3 diagonal covariance matrix for translation and rotation each
+        if self.aleatoric and self.rotation_mode in ['quat', 'silho_quat']:
+            raise NotImplementedError("Aleatoric uncertainty estimation not implemented for quaternion rotation representation.")
+        
         # Determine Translation and Rotation head output dimension
         self.t_dim = 3
         if self.rotation_mode == '6d':
@@ -80,9 +85,15 @@ class PoET(nn.Module):
         if self.class_mode == 'agnostic':
             self.translation_head = MLP(hidden_dim, hidden_dim, self.t_dim, 3)
             self.rotation_head = MLP(hidden_dim, hidden_dim, self.rot_dim, 3)
+            if self.aleatoric:
+                self.translation_head_aleatoric = MLP(hidden_dim, hidden_dim, self.aleatoric_dim, 3)
+                self.rotation_head_aleatoric = MLP(hidden_dim, hidden_dim, self.aleatoric_dim, 3)
         elif self.class_mode == 'specific':
             self.translation_head = MLP(hidden_dim, hidden_dim, self.t_dim * self.n_classes, 3)
             self.rotation_head = MLP(hidden_dim, hidden_dim, self.rot_dim * self.n_classes, 3)
+            if self.aleatoric:
+                self.translation_head_aleatoric = MLP(hidden_dim, hidden_dim, self.aleatoric_dim * self.n_classes, 3)
+                self.rotation_head_aleatoric = MLP(hidden_dim, hidden_dim, self.aleatoric_dim * self.n_classes, 3)
         else:
             raise NotImplementedError('Class mode is not supported.')
 
@@ -128,6 +139,9 @@ class PoET(nn.Module):
         num_pred = transformer.decoder.num_layers
         self.translation_head = nn.ModuleList([copy.deepcopy(self.translation_head) for _ in range(num_pred)])
         self.rotation_head = nn.ModuleList([copy.deepcopy(self.rotation_head) for _ in range(num_pred)])
+        if self.aleatoric:
+            self.translation_head_aleatoric = nn.ModuleList([copy.deepcopy(self.translation_head_aleatoric) for _ in range(num_pred)])
+            self.rotation_head_aleatoric = nn.ModuleList([copy.deepcopy(self.rotation_head_aleatoric) for _ in range(num_pred)])
 
         # Positional Embedding for bounding boxes to generate query embeddings
         if self.query_embedding_mode == 'bbox':
@@ -333,6 +347,9 @@ class PoET(nn.Module):
 
         outputs_translation = []
         outputs_rotation = []
+        if self.aleatoric:
+            outputs_translation_aleatoric = []
+            outputs_rotation_aleatoric = []
         bs, _ = pred_classes.shape
         output_idx = torch.where(pred_classes > 0, pred_classes, 0).view(-1)
 
@@ -340,6 +357,11 @@ class PoET(nn.Module):
         for lvl in range(hs.shape[0]):
             output_rotation = self.rotation_head[lvl](hs[lvl])
             output_translation = self.translation_head[lvl](hs[lvl])
+
+            if self.aleatoric:
+                output_rotation_aleatoric = self.rotation_head_aleatoric[lvl](hs[lvl])
+                output_translation_aleatoric = self.translation_head_aleatoric[lvl](hs[lvl])
+
             if self.class_mode == 'specific':
                 # Select the correct output according to the predicted class in the class-specific mode
                 output_rotation = output_rotation.view(bs * self.n_queries, self.n_classes, -1)
@@ -350,11 +372,25 @@ class PoET(nn.Module):
                 output_translation = torch.cat(
                     [query[output_idx[i], :] for i, query in enumerate(output_translation)]).view(bs, self.n_queries,
                                                                                                   -1)
+                
+                if self.aleatoric:
+                    output_rotation_aleatoric = output_rotation_aleatoric.view(bs * self.n_queries, self.n_classes, -1)
+                    output_rotation_aleatoric = torch.cat([query[output_idx[i], :] for i, query in enumerate(output_rotation_aleatoric)]).view(
+                        bs, self.n_queries, -1)
+
+                    output_translation_aleatoric = output_translation_aleatoric.view(bs * self.n_queries, self.n_classes, -1)
+                    output_translation_aleatoric = torch.cat(
+                        [query[output_idx[i], :] for i, query in enumerate(output_translation_aleatoric)]).view(bs, self.n_queries,
+                                                                                                      -1)
 
             output_rotation = self.process_rotation(output_rotation)
 
             outputs_rotation.append(output_rotation)
             outputs_translation.append(output_translation)
+
+            if self.aleatoric:
+                outputs_rotation_aleatoric.append(output_rotation_aleatoric)
+                outputs_translation_aleatoric.append(output_translation_aleatoric)
 
         outputs_rotation = torch.stack(outputs_rotation)
         outputs_translation = torch.stack(outputs_translation)
@@ -364,6 +400,16 @@ class PoET(nn.Module):
 
         if self.aux_loss:
             out['aux_outputs'] = self._set_aux_loss(outputs_translation, outputs_rotation, pred_boxes, pred_classes)
+
+        if self.aleatoric:
+            outputs_rotation_aleatoric = torch.stack(outputs_rotation_aleatoric)
+            outputs_translation_aleatoric = torch.stack(outputs_translation_aleatoric)
+            out['pred_translation_aleatoric'] = outputs_translation_aleatoric[-1]
+            out['pred_rotation_aleatoric'] = outputs_rotation_aleatoric[-1]
+            if self.aux_loss:
+                for a, aux_output in enumerate(out['aux_outputs']):
+                    aux_output['pred_translation_aleatoric'] = outputs_translation_aleatoric[a]
+                    aux_output['pred_rotation_aleatoric'] = outputs_rotation_aleatoric[a]
 
         return out, n_boxes_per_sample
 
@@ -440,6 +486,31 @@ class SetCriterion(nn.Module):
         losses = {}
         losses["loss_trans"] = loss_translation.sum() / n_obj
         return losses
+    
+    def loss_translation_aleatoric(self, outputs, targets, indices):
+        """
+        Extension of the translation loss to train for aleatoric uncertainty estimation.
+        Loss is calculated according to: Aleatoric Uncertainty from AI-based 6D Object Pose Predictors for Object-relative State Estimation 
+        (https://doi.org/10.1109/LRA.2025.3606700)(https://www.arxiv.org/abs/2509.01583)
+        The paper also explains simplifications.
+        """
+        idx = self._get_src_permutation_idx(indices)
+        src_translation = outputs["pred_translation"][idx]
+        src_translation_aleatoric = outputs["pred_translation_aleatoric"][idx]
+        tgt_translation = torch.cat([t['relative_position'][i] for t, (_, i) in zip(targets, indices)], dim=0)
+        n_obj = len(tgt_translation)
+
+        diff_t = tgt_translation - src_translation
+        # Special case: instead of sigma^2, we predict s = log(sigma^2) to ensure numerical stability and positiveness
+        s_sum = torch.sum(src_translation_aleatoric, dim=1)
+        exp_neg_s = torch.exp(-src_translation_aleatoric)
+        scaled_squared_euclidean = exp_neg_s * torch.square(diff_t)
+        scaled_squared_euclidean = torch.sum(scaled_squared_euclidean, dim=1)
+
+        loss_translation_aleatoric = scaled_squared_euclidean + s_sum
+        losses = {}
+        losses["loss_trans"] = loss_translation_aleatoric.sum() / (2* n_obj)
+        return losses
 
     def loss_rotation(self, outputs, targets, indices):
         """
@@ -460,6 +531,34 @@ class SetCriterion(nn.Module):
         rad = torch.acos(theta)
         losses = {}
         losses["loss_rot"] = rad.sum() / n_obj
+        return losses
+    
+    def loss_rotation_aleatoric(self, outputs, targets, indices):
+        """
+        Extension of the rotation loss to train for aleatoric uncertainty estimation.
+        Loss is calculated according to: Aleatoric Uncertainty from AI-based 6D Object Pose Predictors for Object-relative State Estimation
+        (https://doi.org/10.1109/LRA.2025.3606700)(https://www.arxiv.org/abs/2509.01583)
+        The paper also explains simplifications.
+        """
+        eps = 1e-6
+        idx = self._get_src_permutation_idx(indices)
+        src_rot = outputs["pred_rotation"][idx]
+        src_rot_aleatoric = outputs["pred_rotation_aleatoric"][idx]
+        tgt_rot = torch.cat([t['relative_rotation'][i] for t, (_, i) in zip(targets, indices)], dim=0)
+        n_obj = len(tgt_rot)
+
+        diff_matrix = torch.bmm(src_rot, tgt_rot.transpose(1, 2))
+        # Special case: instead of sigma^2, we predict s = log(sigma^2) to ensure numerical stability and positiveness
+        s_sum = torch.sum(src_rot_aleatoric, dim=1)
+        exp_neg_s = torch.exp(-src_rot_aleatoric)
+
+        # Transform diff matrices into the lie algebra so(3) using the logarithmic map
+        v = so3_log_map(diff_matrix)
+        scaled_squared_euclidean = exp_neg_s * torch.square(v)
+        scaled_squared_euclidean = torch.sum(scaled_squared_euclidean, dim=1)
+        loss_rotation_aleatoric = scaled_squared_euclidean + s_sum
+        losses = {}
+        losses["loss_rot"] = loss_rotation_aleatoric.sum() / (2 * n_obj)
         return losses
 
     def loss_quaternion(self, outputs, targets, indices):
@@ -526,7 +625,9 @@ class SetCriterion(nn.Module):
             'translation': self.loss_translation,
             'rotation': self.loss_rotation,
             'quaternion': self.loss_quaternion,
-            'silho_quaternion': self.loss_silho_quaternion
+            'silho_quaternion': self.loss_silho_quaternion,
+            'aleatoric_translation': self.loss_translation_aleatoric,
+            'aleatoric_rotation': self.loss_rotation_aleatoric,
         }
         assert loss in loss_map, f'do you really want to compute {loss} loss?'
         return loss_map[loss](outputs, targets, indices, **kwargs)
@@ -605,6 +706,7 @@ def build(args):
         query_embedding_mode=args.query_embedding,
         rotation_mode=args.rotation_representation,
         class_mode=args.class_mode,
+        aleatoric=args.aleatoric,
         aux_loss=args.aux_loss,
         backbone_type=args.backbone
     )
@@ -620,6 +722,9 @@ def build(args):
         losses = ['translation', 'silho_quaternion']
     else:
         raise NotImplementedError('Rotation representation not implemented')
+    
+    if args.aleatoric:
+        losses = ['aleatoric_' + loss for loss in losses]
 
     if args.aux_loss:
         aux_weight_dict = {}

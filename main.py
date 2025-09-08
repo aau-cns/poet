@@ -100,6 +100,10 @@ def get_args_parser():
     parser.add_argument('--dec_n_points', default=4, type=int)
     parser.add_argument('--enc_n_points', default=4, type=int)
 
+    # * Uncertainty Configs
+    parser.add_argument('--aleatoric', action='store_true', help="Extend PoET for aleatoric uncertainty estimation by adding dedicated aleatoric uncertainty heads.")
+    parser.add_argument('--calibrate', action='store_true', help="Only train the aleatoric uncertainty heads, freeze all other weights.")
+
     # * Matcher
     parser.add_argument('--matcher_type', default='pose', choices=['pose'], type=str)
     parser.add_argument('--set_cost_class', default=1, type=float,
@@ -329,6 +333,18 @@ def main(args):
         bop_evaluate(model, matcher, data_loader_val, args.eval_set, args.bbox_mode,
                      args.rotation_representation, device, args.output_dir, args.dataset)
         return
+    
+    if args.calibrate:
+        # Freeze all model weights except for the aleatoric uncertainty heads
+        print("Freezing all model weights except for the aleatoric uncertainty heads.")
+        for name, param in model.transformer.named_parameters():
+            param.requires_grad = False
+        for name, param in model.input_proj.named_parameters():
+            param.requires_grad = False
+        for name, param in model.translation_head.named_parameters():
+            param.requires_grad = False
+        for name, param in model.rotation_head.named_parameters():
+            param.requires_grad = False
 
     print("Start training")
     start_time = time.time()
